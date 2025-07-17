@@ -1,0 +1,4 @@
+Django
+PyMuPDF
+pandas
+openpyxl
