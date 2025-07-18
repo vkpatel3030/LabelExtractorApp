@@ -153,15 +153,13 @@ def amazonindex(request):
             else:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 output_filename = f"amazon_invoice_details_{timestamp}.xlsx"
-                os.makedirs("C:\\tmp", exist_ok=True)
-
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="C:\\tmp") as tmp_file:
-
-                
+                os.makedirs("/tmp", exist_ok=True)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="/tmp") as tmp_file:
                     df.to_excel(tmp_file.name, index=False)
                     print("TMP FILE PATH:", tmp_file.name)
-                    tmp_file_path = tmp_file.name  # safer to keep inside block
-
+                    tmp_file_path = tmp_file.name
+                
+            
                 message = f"✅ {len(df)} product rows extracted successfully."
                 extracted_data_for_display = df.to_dict(orient="records")
 
