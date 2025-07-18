@@ -1,14 +1,49 @@
-import os
-import re
-import fitz  # PyMuPDF
-import tempfile
-import pandas as pd
-from datetime import datetime
 from django.shortcuts import render
+from django.core.files.storage import default_storage
+from django.conf import settings
+import fitz  # PyMuPDF
+import pandas as pd
+import re
+import os
+import tempfile
+from datetime import datetime
 from django.http import FileResponse
-from django.core.files.storage import FileSystemStorage
 
-from .utils import extract_amazon_table_data  # Make sure this is correctly defined in your app
+# 📦 Extract product table from Amazon invoice
+def extract_amazon_table_data(text):
+    table_data = []
+
+    pattern = re.compile(
+        r"(\d+)\s+"  # SI No
+        r"(.*?)\s*"
+        r"\|\s*B0\w+\s*\([^)]+\)\s*"
+        r"HSN:\d+\s*"
+        r"₹([\d,]+\.\d{2})\s*"
+        r"(?:-₹([\d,]+\.\d{2})\s*)?"
+        r"(\d+)\s*"
+        r"₹([\d,]+\.\d{2})\s*"
+        r"(\d+%)\s*"
+        r"(IGST|CGST|SGST)\s*"
+        r"₹([\d,]+\.\d{2})\s*"
+        r"₹([\d,]+\.\d{2})",
+        re.DOTALL
+    )
+
+    for match in pattern.finditer(text):
+        table_data.append({
+            "SI No": match.group(1),
+            "Description": match.group(2).replace('\n', ' ').strip(),
+            "Unit Price": match.group(3),
+            "Discount": match.group(4) if match.group(4) else "₹0.00",
+            "Qty": match.group(5),
+            "Net Amount": match.group(6),
+            "Tax Rate": match.group(7),
+            "Tax Type": match.group(8),
+            "Tax Amount": match.group(9),
+            "Total Amount": match.group(10),
+        })
+
+    return table_data
 
 
 def amazonindex(request):
@@ -19,10 +54,9 @@ def amazonindex(request):
     if request.method == "POST" and request.FILES.get("pdf_file"):
         uploaded_file = request.FILES["pdf_file"]
 
-        # ✅ Save uploaded file to /tmp directory
-        temp_storage = FileSystemStorage(location='/tmp')
-        file_path = temp_storage.save(uploaded_file.name, uploaded_file)
-        full_file_path = os.path.join('/tmp', file_path)
+        os.makedirs(default_storage.location, exist_ok=True)
+        file_path = default_storage.save(uploaded_file.name, uploaded_file)
+        full_file_path = os.path.join(default_storage.location, file_path)
 
         doc = None
         try:
@@ -33,7 +67,7 @@ def amazonindex(request):
                 page = doc.load_page(page_num)
                 block = page.get_text("text")
 
-                # 🧾 Field extraction
+                # 📌 Label Fields
                 order_id = invoice_no = order_date = invoice_date = ""
                 buyer_name = address = pincode = ""
                 gstin = awb_number = weight = ""
@@ -119,27 +153,30 @@ def amazonindex(request):
             else:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 output_filename = f"amazon_invoice_details_{timestamp}.xlsx"
+                os.makedirs("C:\\tmp", exist_ok=True)
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="/tmp") as tmp_file:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="C:\\tmp") as tmp_file:
+
+                
                     df.to_excel(tmp_file.name, index=False)
-                    tmp_file_path = tmp_file.name
+                    print("TMP FILE PATH:", tmp_file.name)
+                    tmp_file_path = tmp_file.name  # safer to keep inside block
 
                 message = f"✅ {len(df)} product rows extracted successfully."
                 extracted_data_for_display = df.to_dict(orient="records")
 
-                return FileResponse(open(tmp_file_path, 'rb'), as_attachment=True, filename=output_filename)
+                # ✅ Correct file response using /tmp path
+                response = FileResponse(open(tmp_file_path, 'rb'), as_attachment=True, filename=os.path.basename(tmp_file_path))
+                return response
+
 
         except Exception as e:
             message = f"❌ Error: {str(e)}"
-
         finally:
             if doc:
                 doc.close()
-            try:
-                if os.path.exists(full_file_path):
-                    os.remove(full_file_path)
-            except:
-                pass
+            if default_storage.exists(full_file_path):
+                default_storage.delete(full_file_path)
 
     return render(request, "upload_file.html", {
         "message": message,
