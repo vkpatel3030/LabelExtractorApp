@@ -13,11 +13,15 @@ def meeshoindex(request):
     message = None
     if request.method == "POST" and request.FILES.get("pdf_file"):
         uploaded_file = request.FILES["pdf_file"]
-        file_path = default_storage.save(uploaded_file.name, uploaded_file)
+        temp_file_path = os.path.join(tempfile.gettempdir(), uploaded_file.name)
+
+        with open(temp_file_path, 'wb+') as temp_file: 
+            for chunk in uploaded_file.chunks(): 
+                temp_file.write(chunk) 
 
         try:
             # Read full PDF text
-            doc = fitz.open(file_path)
+            doc = fitz.open(temp_file_path)
             full_text = ""
             for page in doc:
                 full_text += page.get_text()
@@ -82,10 +86,11 @@ def meeshoindex(request):
                     "Customer Address"
                 ]]
 
-                os.makedirs("media", exist_ok=True)
+                
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="C:\\tmp") as tmp_file:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir=tempfile.gettempdir()) as tmp_file:  # ✅ NEW
                     df.to_excel(tmp_file.name, index=False)
+                    tmp_file.flush()
                     tmp_file_path = tmp_file.name
 
                 message = f"✅ {len(extracted_data)} labels extracted and saved."
@@ -98,9 +103,8 @@ def meeshoindex(request):
             message = f"❌ Error processing PDF: {str(e)}"
         finally:
             # Clean up uploaded file
-            if default_storage.exists(file_path):
-                default_storage.delete(file_path)
-
+            if os.path.exists(temp_file_path):  
+                os.remove(temp_file_path)
     return render(request, "upload_file.html", {"message": message})
 
 
