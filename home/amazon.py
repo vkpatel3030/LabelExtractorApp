@@ -152,8 +152,9 @@ def amazonindex(request):
             else:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 output_filename = f"amazon_invoice_details_{timestamp}.xlsx"
-                output_path = os.path.join("media", output_filename)
-                df.to_excel(output_path, index=False)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="/tmp") as tmp_file:
+                 df.to_excel(tmp_file.name, index=False)
+                tmp_file_path = tmp_file.name
 
                 message = f"✅ {len(df)} product rows extracted successfully."
                 extracted_data_for_display = df.to_dict(orient="records")
