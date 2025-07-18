@@ -8,3 +8,4 @@ from datetime import datetime
 
 def index(request):
     return render(request, "index.html",{})
+

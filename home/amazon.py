@@ -5,6 +5,7 @@ import fitz  # PyMuPDF
 import pandas as pd
 import re
 import os
+import tempfile
 from datetime import datetime
 from django.http import FileResponse
 
@@ -152,15 +153,22 @@ def amazonindex(request):
             else:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 output_filename = f"amazon_invoice_details_{timestamp}.xlsx"
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="/tmp") as tmp_file:
-                 df.to_excel(tmp_file.name, index=False)
-                tmp_file_path = tmp_file.name
+                os.makedirs("C:\\tmp", exist_ok=True)
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="C:\\tmp") as tmp_file:
+
+                
+                    df.to_excel(tmp_file.name, index=False)
+                    print("TMP FILE PATH:", tmp_file.name)
+                    tmp_file_path = tmp_file.name  # safer to keep inside block
 
                 message = f"✅ {len(df)} product rows extracted successfully."
                 extracted_data_for_display = df.to_dict(orient="records")
-                response = FileResponse(open(output_path, 'rb'), as_attachment=True, filename=os.path.basename(output_path))
+
+                # ✅ Correct file response using /tmp path
+                response = FileResponse(open(tmp_file_path, 'rb'), as_attachment=True, filename=os.path.basename(tmp_file_path))
                 return response
-                
+
 
         except Exception as e:
             message = f"❌ Error: {str(e)}"

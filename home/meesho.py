@@ -4,6 +4,7 @@ import fitz  # PyMuPDF
 import pandas as pd
 import re
 import os
+import tempfile
 from datetime import datetime
 from django.http import FileResponse
 
@@ -83,11 +84,12 @@ def meeshoindex(request):
 
                 os.makedirs("media", exist_ok=True)
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                output_path = f"media/extracted_label_data_{timestamp}.xlsx"
-                df.to_excel(output_path, index=False)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx", dir="C:\\tmp") as tmp_file:
+                    df.to_excel(tmp_file.name, index=False)
+                    tmp_file_path = tmp_file.name
 
-                message = f"✅ {len(extracted_data)} labels extracted and saved to: {output_path}"
-                response = FileResponse(open(output_path, 'rb'), as_attachment=True, filename=os.path.basename(output_path))
+                message = f"✅ {len(extracted_data)} labels extracted and saved."
+                response = FileResponse(open(tmp_file_path, 'rb'), as_attachment=True, filename=os.path.basename(tmp_file_path))
                 return response
             else:
                 message = "❌ No data extracted from PDF"
