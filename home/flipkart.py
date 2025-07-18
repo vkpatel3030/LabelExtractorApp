@@ -4,6 +4,7 @@ import fitz
 import pandas as pd
 import re
 import os
+import tempfile 
 from datetime import datetime
 from django.http import FileResponse
 
@@ -13,8 +14,11 @@ def flipkartindex(request):
 
     if request.method == "POST" and request.FILES.get("pdf_file"):
         uploaded_file = request.FILES["pdf_file"]
-        file_path = default_storage.save(uploaded_file.name, uploaded_file)
-
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+            for chunk in uploaded_file.chunks():
+                tmp_file.write(chunk)
+            tmp_file.flush()
+            file_path = tmp_file.name    
         try:
             doc = fitz.open(file_path)
             full_text = ""
@@ -143,12 +147,14 @@ def flipkartindex(request):
                     "HBD", "CPD", "AWB No.", "GSTIN", "Shipping/Customer address", "Pincode"
                 ]
                 df = df.reindex(columns=columns_order, fill_value="")
-                os.makedirs("media", exist_ok=True)
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_filename = "flipkart_labels_" + timestamp + ".xlsx"
                 output_filename = f"flipkart_labels_{timestamp}.xlsx"
-                output_path = os.path.join("media", output_filename)
-                df.to_excel(output_path, index=False)
-
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_excel:
+                    df.to_excel(tmp_excel.name, index=False)
+                    tmp_excel.flush()
+                    output_path = tmp_excel.name
+                
                 message = f"\u2705 {len(df)} labels extracted and saved to: /{output_path}"
                 extracted_data_for_display = df.to_dict(orient='records')
                 response = FileResponse(open(output_path, 'rb'), as_attachment=True, filename=os.path.basename(output_path))
@@ -159,9 +165,11 @@ def flipkartindex(request):
         except Exception as e:
             message = f"\u274c Unexpected error: {str(e)}"
         finally:
-            if default_storage.exists(file_path):
-                default_storage.delete(file_path)
-
+            try:
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+            except:
+                pass
     return render(request, "upload_file.html", {
         "message": message,
         "extracted_data": extracted_data_for_display
