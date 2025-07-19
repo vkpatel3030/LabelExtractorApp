@@ -20,3 +20,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
+# ✅ Vercel requires this at the end:
+from label.wsgi import application
+app = application
