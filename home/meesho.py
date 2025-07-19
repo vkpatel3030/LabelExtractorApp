@@ -110,15 +110,20 @@ def meeshoindex(request):
 
 def extract_customer_address(block_text):
     """Extract customer address from block text"""
-    customer_address = ""
-    address_match = re.search(
-        r"Customer Address\s*\n(.+?)(?:Prepaid|Invoice|TAX INVOICE|Order No\.|SKU|GSTIN)",
-        block_text,
-        re.DOTALL | re.IGNORECASE
-    )
-    if address_match:
-        address_lines = address_match.group(1).strip().split("\n")
-        customer_address = ", ".join([line.strip() for line in address_lines if line.strip()])
+    try:
+        match = re.search(
+            r"Customer Address\s*\n(.+?)(?:If undelivered, return to:|Prepaid|Invoice|TAX INVOICE|Order No\.|SKU|GSTIN)",
+            block_text,
+            re.DOTALL | re.IGNORECASE
+        )
+        if match:
+            address_block = match.group(1)
+            address_lines = address_block.strip().split("\n")
+            address_lines = [line.strip() for line in address_lines if line.strip()]
+            customer_address = ", ".join(address_lines)
+    except Exception as e:
+        print("❌ Error extracting customer address:", e)
+        print(block_text[:500])
     return customer_address
 
 
