@@ -173,7 +173,7 @@ def extract_awb_number(block_text):
     
     # Debug: Print block text to see what's available
     print("🔍 Searching for AWB in block:")
-    print(block_text[:500])  # Print first 500 chars
+    print(block_text[:5000])  # Print first 500 chars
     
     # AWB patterns based on your examples:
     # VL0081530070753 (VL + 13 digits)
