@@ -8,6 +8,17 @@ import tempfile
 from datetime import datetime
 from django.http import FileResponse
 
+def split_pdf_chunks(file_path, pages_per_chunk=10):
+    doc = fitz.open(file_path)
+    chunks = []
+    for start in range(0, len(doc), pages_per_chunk):
+        end = min(start + pages_per_chunk, len(doc))
+        sub_doc = fitz.open()
+        for p in range(start, end):
+            sub_doc.insert_pdf(doc, from_page=p, to_page=p)
+        chunks.append(sub_doc)
+    return chunks
+
 
 def meeshoindex(request):
     message = None
