@@ -1,0 +1,29 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Label Extractor</title>
+    <script>
+        function redirectToPlatform(selectElement) {
+            const selectedPlatform = selectElement.value;
+            if (selectedPlatform) {
+                // Redirect based on selection
+                window.location.href = `/${selectedPlatform}`;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h2>Upload PDF Shipping Labels</h2>
+    
+    <label for="platform">Select Platform:</label>
+        <select name="platform" id="platform" required onchange="redirectToPlatform(this)">
+            <option value="">--Select Platform--</option>
+            <option value="amazon">Amazon</option>
+            <option value="flipkart">Flipkart</option>
+            <option value="meesho">Meesho</option>
+            <option value="meesho">Myntra</option>
+        </select>
+
+</body>
+</html>

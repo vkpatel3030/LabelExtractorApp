@@ -1,0 +1,25 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Label Extractor</title>
+    
+</head>
+<body>
+    <h2>Upload PDF Shipping Labels</h2>
+    
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label for="pdf_file">Upload PDF File:</label>
+        <input type="file" name="pdf_file" accept=".pdf" required>
+
+        <br><br>
+        <button type="submit">Extract to Excel</button>
+    </form>
+
+    {% if message %}
+        <p><strong>{{ message }}</strong></p>
+    {% endif %}
+</body>
+</html>
